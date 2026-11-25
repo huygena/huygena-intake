@@ -1,0 +1,67 @@
+{
+  "name": "huygena-intake",
+  "version": "0.1.0",
+  "description": "Turn a DOI, arXiv, bioRxiv or PubMed ID into a replication brief: metadata, code and data links, availability statements and a rule-based readiness check. Library and CLI.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/huygena/huygena-intake#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huygena/huygena-intake.git"
+  },
+  "bugs": {
+    "url": "https://github.com/huygena/huygena-intake/issues"
+  },
+  "author": "Huygena",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "huygena-intake": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node scripts/smoke.mjs",
+    "prepare": "tsup"
+  },
+  "keywords": [
+    "huygena",
+    "replication",
+    "reproducibility",
+    "doi",
+    "arxiv",
+    "biorxiv",
+    "pubmed",
+    "europe-pmc",
+    "crossref",
+    "open-science",
+    "desci",
+    "cli"
+  ],
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3",
+    "vitest": "5.1.1"
+  },
+  "packageManager": "pnpm@12.16.1"
+}
