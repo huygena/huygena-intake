@@ -1,0 +1,95 @@
+{
+ "version": "6.9",
+ "hitCount": 1,
+ "resultList": {
+  "result": [
+   {
+    "id": "35263338",
+    "source": "MED",
+    "pmid": "35263338",
+    "pmcid": "PMC8936487",
+    "fullTextIdList": {
+     "fullTextId": [
+      "PMC8936487"
+     ]
+    },
+    "doi": "10.1371/journal.pcbi.1009935",
+    "title": "Urgent need for consistent standards in functional enrichment analysis.",
+    "authorString": "Wijesooriya K, Jadaan SA, Perera KL, Kaur T, Ziemann M.",
+    "authorList": {
+     "author": [
+      {
+       "fullName": "Wijesooriya K",
+       "lastName": "Wijesooriya",
+       "firstName": "Kaumadi",
+       "initials": "K"
+      },
+      {
+       "fullName": "Jadaan SA",
+       "lastName": "Jadaan",
+       "firstName": "Sameer A",
+       "initials": "SA"
+      },
+      {
+       "fullName": "Perera KL",
+       "lastName": "Perera",
+       "firstName": "Kaushalya L",
+       "initials": "KL"
+      },
+      {
+       "fullName": "Kaur T",
+       "lastName": "Kaur",
+       "firstName": "Tanuveer",
+       "initials": "T"
+      },
+      {
+       "fullName": "Ziemann M",
+       "lastName": "Ziemann",
+       "firstName": "Mark",
+       "initials": "M"
+      }
+     ]
+    },
+    "journalInfo": {
+     "yearOfPublication": 2022,
+     "journal": {
+      "title": "PLoS computational biology"
+     }
+    },
+    "pubYear": "2022",
+    "abstractText": "Gene set enrichment tests (a.k.a. functional enrichment analysis) are among the most frequently used methods in computational biology. Despite this popularity, there are concerns that these methods are being applied incorrectly and the results of some peer-reviewed publications are unreliable. These problems include the use of inappropriate background gene lists, lack of false discovery rate correction and lack of methodological detail. To ascertain the frequency of these issues in the literature, we performed a screen of 186 open-access research articles describing functional enrichment results. We find that 95% of analyses using over-representation tests did not implement an appropriate background gene list or did not describe this in the methods. Failure to perform p-value correction for multiple tests was identified in 43% of analyses. Many studies lacked detail in the methods section about the tools and gene sets used. An extension of this survey showed that these problems are not associated with journal or article level bibliometrics. Using seven independent RNA-seq datasets, we show misuse of enrichment tools alters results substantially. In conclusion, most published functional enrichment studies suffered from one or more major flaws, highlighting the need for stronger standards for enrichment analysis.",
+    "fullTextUrlList": {
+     "fullTextUrl": [
+      {
+       "availability": "Subscription required",
+       "availabilityCode": "S",
+       "documentStyle": "doi",
+       "site": "DOI",
+       "url": "https://doi.org/10.1371/journal.pcbi.1009935"
+      },
+      {
+       "availability": "Open access",
+       "availabilityCode": "OA",
+       "documentStyle": "html",
+       "site": "Europe_PMC",
+       "url": "https://europepmc.org/articles/PMC8936487"
+      },
+      {
+       "availability": "Open access",
+       "availabilityCode": "OA",
+       "documentStyle": "pdf",
+       "site": "Europe_PMC",
+       "url": "https://europepmc.org/articles/PMC8936487?pdf=render"
+      }
+     ]
+    },
+    "isOpenAccess": "Y",
+    "inEPMC": "Y",
+    "inPMC": "Y",
+    "citedByCount": 93,
+    "license": "cc by",
+    "firstPublicationDate": "2022-03-09"
+   }
+  ]
+ }
+}

@@ -1,0 +1,78 @@
+{
+ "version": "6.9",
+ "hitCount": 1,
+ "resultList": {
+  "result": [
+   {
+    "id": "PPR383435",
+    "source": "PPR",
+    "doi": "10.1101/2021.08.15.456425",
+    "title": "ColabFold - Making protein folding accessible to all",
+    "authorString": "Mirdita M, Schütze K, Moriwaki Y, Heo L, Ovchinnikov S, Steinegger M.",
+    "authorList": {
+     "author": [
+      {
+       "fullName": "Mirdita M",
+       "lastName": "Mirdita",
+       "firstName": "Milot",
+       "initials": "M"
+      },
+      {
+       "fullName": "Schütze K",
+       "lastName": "Schütze",
+       "firstName": "Konstantin",
+       "initials": "K"
+      },
+      {
+       "fullName": "Moriwaki Y",
+       "lastName": "Moriwaki",
+       "firstName": "Yoshitaka",
+       "initials": "Y"
+      },
+      {
+       "fullName": "Heo L",
+       "lastName": "Heo",
+       "firstName": "Lim",
+       "initials": "L"
+      },
+      {
+       "fullName": "Ovchinnikov S",
+       "lastName": "Ovchinnikov",
+       "firstName": "Sergey",
+       "initials": "S"
+      }
+     ]
+    },
+    "pubYear": "2021",
+    "abstractText": "ColabFold offers accelerated protein structure and complex predictions by combining the fast homology search of MMseqs2 with AlphaFold2 or RoseTTAFold. ColabFold’s 40 - 60× faster search and optimized model use allows predicting close to a thousand structures per day on a server with one GPU. Coupled with Google Colaboratory, ColabFold becomes a free and accessible platform for protein folding. ColabFold is open-source software available at  github.com/sokrypton/ColabFold . Its novel environmental databases are available at  colabfold.mmseqs.com <h4>Contact</h4>  author@example.org ,  author@example.org ,  author@example.org",
+    "bookOrReportDetails": {
+     "publisher": "bioRxiv",
+     "yearOfPublication": 2021
+    },
+    "fullTextUrlList": {
+     "fullTextUrl": [
+      {
+       "availability": "Open access",
+       "availabilityCode": "OA",
+       "documentStyle": "pdf",
+       "site": "Unpaywall",
+       "url": "https://www.biorxiv.org/content/biorxiv/early/2022/02/08/2021.08.15.456425.full.pdf"
+      },
+      {
+       "availability": "Free",
+       "availabilityCode": "F",
+       "documentStyle": "doi",
+       "site": "DOI",
+       "url": "https://doi.org/10.1101/2021.08.15.456425"
+      }
+     ]
+    },
+    "isOpenAccess": "N",
+    "inEPMC": "N",
+    "inPMC": "N",
+    "citedByCount": 219,
+    "firstPublicationDate": "2021-08-15"
+   }
+  ]
+ }
+}

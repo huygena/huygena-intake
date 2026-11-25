@@ -1,0 +1,205 @@
+{
+ "status": "ok",
+ "message-type": "work",
+ "message-version": "1.0.0",
+ "message": {
+  "update-to": [
+   {
+    "DOI": "10.1371/journal.pcbi.1009935",
+    "type": "new_version",
+    "label": "New version",
+    "source": "publisher",
+    "updated": {
+     "date-parts": [
+      [
+       2022,
+       3,
+       21
+      ]
+     ],
+     "date-time": "2022-03-21T00:00:00Z",
+     "timestamp": 1647820800000
+    }
+   }
+  ],
+  "reference-count": 40,
+  "publisher": "Public Library of Science (PLoS)",
+  "issue": "3",
+  "license": [
+   {
+    "start": {
+     "date-parts": [
+      [
+       2022,
+       3,
+       9
+      ]
+     ],
+     "date-time": "2022-03-09T00:00:00Z",
+     "timestamp": 1646784000000
+    },
+    "content-version": "vor",
+    "delay-in-days": 0,
+    "URL": "http://creativecommons.org/licenses/by/4.0/"
+   }
+  ],
+  "abstract": "<jats:p>Gene set enrichment tests (a.k.a. functional enrichment analysis) are among the most frequently used methods in computational biology. Despite this popularity, there are concerns that these methods are being applied incorrectly and the results of some peer-reviewed publications are unreliable. These problems include the use of inappropriate background gene lists, lack of false discovery rate correction and lack of methodological detail. To ascertain the frequency of these issues in the literature, we performed a screen of 186 open-access research articles describing functional enrichment results. We find that 95% of analyses using over-representation tests did not implement an appropriate background gene list or did not describe this in the methods. Failure to perform p-value correction for multiple tests was identified in 43% of analyses. Many studies lacked detail in the methods section about the tools and gene sets used. An extension of this survey showed that these problems are not associated with journal or article level bibliometrics. Using seven independent RNA-seq datasets, we show misuse of enrichment tools alters results substantially. In conclusion, most published functional enrichment studies suffered from one or more major flaws, highlighting the need for stronger standards for enrichment analysis.</jats:p>",
+  "DOI": "10.1371/journal.pcbi.1009935",
+  "type": "journal-article",
+  "created": {
+   "date-parts": [
+    [
+     2022,
+     3,
+     9
+    ]
+   ],
+   "date-time": "2022-03-09T13:41:45Z",
+   "timestamp": 1646833305000
+  },
+  "page": "e1009935",
+  "source": "Crossref",
+  "is-referenced-by-count": 146,
+  "title": [
+   "Urgent need for consistent standards in functional enrichment analysis"
+  ],
+  "prefix": "10.1371",
+  "volume": "18",
+  "author": [
+   {
+    "given": "Kaumadi",
+    "family": "Wijesooriya",
+    "sequence": "first"
+   },
+   {
+    "given": "Sameer A.",
+    "family": "Jadaan",
+    "sequence": "additional"
+   },
+   {
+    "given": "Kaushalya L.",
+    "family": "Perera",
+    "sequence": "additional"
+   },
+   {
+    "given": "Tanuveer",
+    "family": "Kaur",
+    "sequence": "additional"
+   },
+   {
+    "given": "Mark",
+    "family": "Ziemann",
+    "sequence": "additional"
+   }
+  ],
+  "member": "340",
+  "published-online": {
+   "date-parts": [
+    [
+     2022,
+     3,
+     9
+    ]
+   ]
+  },
+  "updated-by": [
+   {
+    "DOI": "10.1371/journal.pcbi.1009935",
+    "type": "new_version",
+    "label": "New version",
+    "source": "publisher",
+    "updated": {
+     "date-parts": [
+      [
+       2022,
+       3,
+       21
+      ]
+     ],
+     "date-time": "2022-03-21T00:00:00Z",
+     "timestamp": 1647820800000
+    }
+   }
+  ],
+  "container-title": [
+   "PLOS Computational Biology"
+  ],
+  "original-title": [],
+  "language": "en",
+  "link": [
+   {
+    "URL": "https://dx.plos.org/10.1371/journal.pcbi.1009935",
+    "content-type": "unspecified",
+    "content-version": "vor",
+    "intended-application": "similarity-checking"
+   }
+  ],
+  "deposited": {
+   "date-parts": [
+    [
+     2022,
+     3,
+     21
+    ]
+   ],
+   "date-time": "2022-03-21T13:43:34Z",
+   "timestamp": 1647870214000
+  },
+  "resource": {
+   "primary": {
+    "URL": "https://dx.plos.org/10.1371/journal.pcbi.1009935"
+   }
+  },
+  "subtitle": [],
+  "editor": [
+   {
+    "given": "Melissa L.",
+    "family": "Kemp",
+    "sequence": "first",
+    "affiliation": [],
+    "role": [
+     {
+      "vocabulary": "crossref",
+      "role": "editor"
+     }
+    ]
+   }
+  ],
+  "short-title": [],
+  "issued": {
+   "date-parts": [
+    [
+     2022,
+     3,
+     9
+    ]
+   ]
+  },
+  "references-count": 40,
+  "URL": "https://doi.org/10.1371/journal.pcbi.1009935",
+  "relation": {
+   "has-part": [
+    {
+     "id-type": "doi",
+     "id": "https://doi.org/10.1371/journal.pcbi.1009935.g001",
+     "asserted-by": "subject"
+    },
+    {
+     "id-type": "doi",
+     "id": "https://doi.org/10.1371/journal.pcbi.1009935.g002",
+     "asserted-by": "subject"
+    }
+   ]
+  },
+  "subject": [],
+  "published": {
+   "date-parts": [
+    [
+     2022,
+     3,
+     9
+    ]
+   ]
+  }
+ }
+}

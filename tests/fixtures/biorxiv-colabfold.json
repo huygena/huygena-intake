@@ -1,0 +1,42 @@
+{
+ "messages": [
+  {
+   "status": "ok",
+   "category": "all"
+  }
+ ],
+ "collection": [
+  {
+   "title": "ColabFold - Making protein folding accessible to all",
+   "authors": "Mirdita, M.; Ovchinnikov, S.; Steinegger, M.",
+   "author_corresponding": "Martin  Steinegger",
+   "author_corresponding_institution": "Seoul National University",
+   "doi": "10.1101/2021.08.15.456425",
+   "date": "2021-08-15",
+   "version": "1",
+   "type": "new results",
+   "license": "cc_by_nc_nd",
+   "category": "bioinformatics",
+   "jatsxml": "https://www.biorxiv.org/content/early/2021/08/15/2021.08.15.456425.source.xml",
+   "abstract": "ColabFold offers accelerated protein structure and complex predictions by combining the fast homology search of MMseqs2 with AlphaFold2 or RoseTTAFold. ColabFolds 40 - 60x faster search and optimized model use allows predicting close to a thousand structures per day on a server with one GPU. Coupled with Google Colaboratory, ColabFold becomes a free and accessible platform for protein folding. ColabFold is open-source software available at github.com/sokrypton/ColabFold. Its novel environmental databases are available at colabfold.mmseqs.com\n\nContact author@example.org, author@example.org, author@example.org",
+   "published": "10.1038/s41592-022-01488-1",
+   "server": "bioRxiv"
+  },
+  {
+   "title": "ColabFold - Making protein folding accessible to all",
+   "authors": "Mirdita, M.; Schuetze, K.; Moriwaki, Y.; Heo, L.; Ovchinnikov, S.; Steinegger, M.",
+   "author_corresponding": "Martin  Steinegger",
+   "author_corresponding_institution": "Seoul National University",
+   "doi": "10.1101/2021.08.15.456425",
+   "date": "2022-02-08",
+   "version": "3",
+   "type": "new results",
+   "license": "cc_by_nc_nd",
+   "category": "bioinformatics",
+   "jatsxml": "https://www.biorxiv.org/content/early/2022/02/08/2021.08.15.456425.source.xml",
+   "abstract": "ColabFold offers accelerated protein structure and complex predictions by combining the fast homology search of MMseqs2 with AlphaFold2 or RoseTTAFold. ColabFolds 40 - 60x faster search and optimized model use allows predicting close to a thousand structures per day on a server with one GPU. Coupled with Google Colaboratory, ColabFold becomes a free and accessible platform for protein folding. ColabFold is open-source software available at github.com/sokrypton/ColabFold. Its novel environmental databases are available at colabfold.mmseqs.com\n\nContact author@example.org, author@example.org, author@example.org",
+   "published": "10.1038/s41592-022-01488-1",
+   "server": "bioRxiv"
+  }
+ ]
+}
