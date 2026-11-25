@@ -28,7 +28,9 @@ export interface Ctx {
 }
 
 export function makeCtx(opts: HttpOptions = {}): Ctx {
-  const f = opts.fetch ?? (globalThis.fetch as FetchLike | undefined);
+  // Bind the global fetch: Cloudflare Workers throw "Illegal invocation" when it is called as a method of another object.
+  const g = globalThis.fetch as FetchLike | undefined;
+  const f = opts.fetch ?? (g ? (g.bind(globalThis) as FetchLike) : undefined);
   if (!f) throw new Error("No fetch available. Pass opts.fetch or run on Node 20+.");
   return {
     fetch: f,
