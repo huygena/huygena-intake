@@ -4,13 +4,13 @@ import { fetchArxiv, parseArxivAtom } from "../src/sources/arxiv.js";
 import { fetchBiorxiv, parseBiorxiv } from "../src/sources/biorxiv.js";
 import { fetchCrossref, parseCrossref } from "../src/sources/crossref.js";
 import { fetchEpmcFullText, fetchEpmcRecord, fetchEpmcSearch, parseEpmcRecord } from "../src/sources/europepmc.js";
-import { checkGithubRepo, parseGithubRepo, type GithubCtx } from "../src/sources/github.js";
+import { checkRepo, detectLicense, parseGithubRepo, parseRefs, spdx, type RepoCtx } from "../src/sources/repo.js";
 import { fetchIdConv, fetchPmcFullText, parseIdConv } from "../src/sources/ncbi.js";
-import { fakeFetch, fx, timeoutError, type Route } from "./helpers.js";
+import { fakeFetch, fx, gitRefs, timeoutError, type Route } from "./helpers.js";
 
-const ctxWith = (routes: Route[], extra: Partial<GithubCtx> = {}) => {
+const ctxWith = (routes: Route[], extra: Partial<RepoCtx> = {}) => {
   const f = fakeFetch(routes);
-  const ctx: GithubCtx = { ...makeCtx({ fetch: f.fetch, mailto: "" }), ...extra };
+  const ctx: RepoCtx = { ...makeCtx({ fetch: f.fetch, mailto: "" }), ...extra };
   return { ctx, ...f };
 };
 
@@ -176,53 +176,90 @@ describe("ncbi", () => {
   });
 });
 
-describe("github", () => {
-  it("parses a repo and records a move", () => {
-    expect(parseGithubRepo(JSON.parse(fx("github-alphafold.json")), "deepmind/alphafold")).toEqual({
+describe("repo checks (any host)", () => {
+  const GH = { host: "github" as const, id: "deepmind/alphafold", url: "https://github.com/deepmind/alphafold" };
+  const refs: Route = { match: /\.git\/info\/refs\?service=git-upload-pack$/, body: gitRefs() };
+
+  it("parses a git ref advertisement", () => {
+    expect(parseRefs(gitRefs("master"))).toEqual({ head: "c77e5d2a8961d1a353632c462914ff0a32a950f6", defaultBranch: "master" });
+    expect(parseRefs("<html>login</html>")).toBeNull();
+  });
+
+  it("checks reachability over git, then adds GitHub details and records a move", async () => {
+    const { ctx, calls } = ctxWith([refs, { match: /api\.github\.com/, file: "github-alphafold.json" }]);
+    expect(await checkRepo(ctx, GH)).toEqual({
       status: "ok",
       reason: "Repository moved: deepmind/alphafold now redirects to google-deepmind/alphafold",
+      via: "git",
       fullName: "google-deepmind/alphafold",
       defaultBranch: "main",
+      head: "c77e5d2a8961d1a353632c462914ff0a32a950f6",
       license: "Apache-2.0",
       stars: 14956,
       pushedAt: "2026-04-22T17:58:21Z",
       archived: false,
       fork: false,
       description: "Open source code for AlphaFold 2.",
+      details: true,
+      licenseChecked: true,
     });
-    expect(parseGithubRepo(JSON.parse(fx("github-surveyenrichment.json")), "markziemann/surveyenrichmentmethods").reason).toBeNull();
+    expect(calls[0]!.url).toBe("https://github.com/deepmind/alphafold.git/info/refs?service=git-upload-pack");
+    expect(parseGithubRepo(JSON.parse(fx("github-surveyenrichment.json"))).fullName).toBe("markziemann/SurveyEnrichmentMethods");
   });
 
-  it("maps 404 to not_found", async () => {
-    const { ctx } = ctxWith([{ match: /api\.github\.com/, status: 404, file: "github-404.json" }]);
-    expect(await checkGithubRepo(ctx, "huygena/definitely-not-a-repo-xyz")).toMatchObject({ status: "not_found" });
-  });
-
-  it("stops after a rate limit and does not crash", async () => {
-    const { ctx, calls } = ctxWith([
-      {
-        match: /api\.github\.com/,
-        status: 403,
-        body: '{"message":"API rate limit exceeded for 1.2.3.4."}',
-        headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": "1764093600" },
-      },
-    ]);
-    const a = await checkGithubRepo(ctx, "a/b");
-    expect(a).toMatchObject({ status: "unchecked", reason: "GitHub API rate limit reached (resets 18:00 UTC); set GITHUB_TOKEN for 5,000 requests/hour" });
-    const b = await checkGithubRepo(ctx, "c/d");
-    expect(b.status).toBe("unchecked");
+  it("maps a git 401/404 to not_found without calling any API", async () => {
+    const { ctx, calls } = ctxWith([{ match: /\.git\/info\/refs/, status: 401, body: "Authentication required" }]);
+    expect(await checkRepo(ctx, { host: "codeberg", id: "a/b", url: "https://codeberg.org/a/b" })).toMatchObject({ status: "not_found", via: "git" });
     expect(calls).toHaveLength(1);
   });
 
-  it("sends the token only to GitHub as a bearer header", async () => {
-    const { ctx, calls } = ctxWith([{ match: /api\.github\.com/, file: "github-surveyenrichment.json" }], { githubToken: "test-token" });
-    await checkGithubRepo(ctx, "markziemann/SurveyEnrichmentMethods");
-    expect(calls[0]!.headers.Authorization).toBe("Bearer test-token");
+  it("keeps the result when the API rate-limits, skips that API afterwards and never mentions tokens", async () => {
+    const { ctx, calls } = ctxWith([
+      refs,
+      { match: /api\.github\.com/, status: 403, body: '{"message":"API rate limit exceeded for 1.2.3.4."}', headers: { "x-ratelimit-remaining": "0", "x-ratelimit-reset": "1764093600" } },
+    ]);
+    const a = await checkRepo(ctx, GH);
+    expect(a).toMatchObject({ status: "ok", via: "git", details: false, reason: null });
+    const b = await checkRepo(ctx, { ...GH, id: "c/d", url: "https://github.com/c/d" });
+    expect(b.status).toBe("ok");
+    expect(calls.filter((c) => /api\.github/.test(c.url))).toHaveLength(1);
+    expect(JSON.stringify([a, b])).not.toMatch(/token|rate|reset/i);
+  });
+
+  it("sends a GitHub token only to api.github.com and never records it", async () => {
+    const { ctx, calls } = ctxWith([refs, { match: /api\.github\.com/, file: "github-surveyenrichment.json" }], { githubToken: "test-token" });
+    await checkRepo(ctx, { host: "github", id: "markziemann/SurveyEnrichmentMethods", url: "https://github.com/markziemann/SurveyEnrichmentMethods" });
+    expect(calls[0]!.headers.Authorization).toBeUndefined();
+    expect(calls[1]!.headers.Authorization).toBe("Bearer test-token");
     expect(JSON.stringify(ctx.sources)).not.toContain("test-token");
   });
 
+  it("uses each host's public API for details", async () => {
+    const { ctx, calls } = ctxWith([
+      refs,
+      { match: /codeberg\.org\/api\/v1\/repos\/a\/b$/, body: JSON.stringify({ full_name: "a/b", default_branch: "main", stars_count: 2, updated_at: "2025-01-01T00:00:00Z", archived: false, fork: false, description: "" }) },
+      { match: /api\.bitbucket\.org\/2\.0\/repositories\/a\/b$/, body: JSON.stringify({ full_name: "a/b", mainbranch: { name: "trunk" }, updated_on: "2025-01-01T00:00:00Z" }) },
+    ]);
+    expect(await checkRepo(ctx, { host: "codeberg", id: "a/b", url: "https://codeberg.org/a/b" })).toMatchObject({ status: "ok", stars: 2, license: null, details: true, licenseChecked: true });
+    expect(await checkRepo(ctx, { host: "bitbucket", id: "a/b", url: "https://bitbucket.org/a/b" })).toMatchObject({ status: "ok", defaultBranch: "main", details: true });
+    expect(calls.map((c) => c.url)).toContain("https://bitbucket.org/a/b.git/info/refs?service=git-upload-pack");
+    expect(calls.map((c) => c.url)).toContain("https://codeberg.org/a/b/raw/branch/main/COPYING");
+    expect(spdx("apache-2.0")).toBe("Apache-2.0");
+    expect(detectLicense("MIT License\n\nPermission is hereby granted, free of charge, to any person obtaining a copy")).toBe("MIT");
+    expect(detectLicense("GNU GENERAL PUBLIC LICENSE\n   Version 3, 29 June 2007")).toBe("GPL-3.0");
+    expect(detectLicense("Copyright me. All rights reserved.")).toBe("NOASSERTION");
+    expect(spdx("gpl-3.0-only")).toBe("GPL-3.0");
+  });
+
+  it("checks archives with a plain GET", async () => {
+    const { ctx } = ctxWith([{ match: /zenodo\.org\/records\/9$/, body: "<html></html>" }]);
+    expect(await checkRepo(ctx, { host: "zenodo", id: "zenodo.9", url: "https://zenodo.org/records/9" })).toMatchObject({ status: "ok", via: "http", details: false });
+    const gone = ctxWith([{ match: /zenodo/, status: 410 }]);
+    expect(await checkRepo(gone.ctx, { host: "zenodo", id: "zenodo.9", url: "https://zenodo.org/records/9" })).toMatchObject({ status: "not_found" });
+  });
+
   it("turns network errors into unchecked", async () => {
-    const { ctx } = ctxWith([{ match: /api\.github\.com/, error: new TypeError("fetch failed") }]);
-    expect(await checkGithubRepo(ctx, "a/b")).toMatchObject({ status: "unchecked", reason: "GitHub API did not answer: network error: fetch failed" });
+    const { ctx } = ctxWith([{ match: /\.git\/info\/refs/, error: new TypeError("fetch failed") }]);
+    expect(await checkRepo(ctx, GH)).toMatchObject({ status: "unchecked", reason: "GitHub did not answer: network error: fetch failed" });
   });
 });

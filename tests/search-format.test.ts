@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { formatBrief, formatSearch, intake, search, SearchResultSchema } from "../src/index.js";
-import { fakeFetch, type Route } from "./helpers.js";
+import { fakeFetch, gitRefs, type Route } from "./helpers.js";
 
 describe("search", () => {
   it("maps Europe PMC hits", async () => {
@@ -37,6 +37,7 @@ const AF2: Route[] = [
   { match: /idconv/, file: "idconv-alphafold2.json" },
   { match: /efetch/, file: "pmc-alphafold2.xml" },
   { match: /europepmc/, file: "epmc-alphafold2.json" },
+  { match: /\.git\/info\/refs/, body: gitRefs() },
   { match: /api\.github\.com/, file: "github-alphafold.json" },
 ];
 
@@ -73,7 +74,7 @@ describe.skipIf(!existsSync(cli))("cli (built)", () => {
     const h = run("--help");
     expect(h.status).toBe(0);
     expect(h.stdout).toContain("Exit codes");
-    expect(run("-v").stdout.trim()).toBe("0.7.0");
+    expect(run("-v").stdout.trim()).toBe("0.8.0");
   });
 
   it("exits 2 on usage errors without touching the network", () => {

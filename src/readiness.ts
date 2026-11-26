@@ -1,4 +1,5 @@
 import type { Brief, Check, CheckId, CheckStatus, CodeLink, Readiness, ReadinessLevel } from "./schema.js";
+import { hostName } from "./sources/repo.js";
 
 /** The parts of a brief the readiness rules read. */
 export type ReadinessInput = Pick<Brief, "code" | "data" | "access" | "statements">;
@@ -9,6 +10,14 @@ const SHA = /^[0-9a-f]{7,40}$/i;
 function label(c: CodeLink): string {
   return c.host === "github" && c.id ? `github.com/${c.id}` : c.url.replace(/^https?:\/\//, "");
 }
+
+/** Label with the host's current name when the repository moved. */
+function current(c: CodeLink): string {
+  const n = c.repo?.fullName;
+  if (!n || !c.id || n.toLowerCase() === c.id.toLowerCase()) return label(c);
+  return c.host === "github" ? `github.com/${n}` : label(c).replace(c.id, n);
+}
+
 
 function list(xs: string[], max = 3): string {
   return xs.length <= max ? xs.join(", ") : `${xs.slice(0, max).join(", ")} and ${xs.length - max} more`;
@@ -47,42 +56,43 @@ export function assessReadiness(brief: ReadinessInput): Readiness {
     checks.push(check("code_found", "fail", "No code repository or archive found in the metadata, abstract or full text", true));
   }
 
-  // code_reachable
-  const gh = primary.filter((c) => c.host === "github");
-  const ghOk = gh.filter((c) => c.github?.status === "ok");
-  const ghMissing = gh.filter((c) => c.github?.status === "not_found");
-  const nonGh = primary.filter((c) => c.host !== "github");
+  // code_reachable (any host: git over HTTPS for git hosts, a plain GET for archives)
+  const ok = primary.filter((c) => c.repo?.status === "ok");
+  const missing = primary.filter((c) => c.repo?.status === "not_found");
   if (!primary.length) {
     checks.push(check("code_reachable", "skip", "No primary code link to check", true));
-  } else if (ghOk.length) {
-    const c = ghOk[0]!;
-    const g = c.github!;
+  } else if (ok.length) {
+    const c = ok[0]!;
+    const g = c.repo!;
     const bits = [g.defaultBranch && `default branch ${g.defaultBranch}`, g.pushedAt && `last push ${g.pushedAt.slice(0, 10)}`, g.archived && "archived (read-only)"]
       .filter(Boolean)
       .join(", ");
-    checks.push(check("code_reachable", "pass", `github.com/${g.fullName ?? c.id} is live on GitHub${bits ? ` (${bits})` : ""}`, true));
-  } else if (ghMissing.length && ghMissing.length === primary.length) {
-    checks.push(check("code_reachable", "fail", `GitHub returned 404 for ${list(ghMissing.map((c) => c.id ?? c.url))}`, true));
+    const verb = g.via === "http" ? "is reachable on" : "is live on";
+    checks.push(check("code_reachable", "pass", `${current(c)} ${verb} ${hostName(c.host)}${bits ? ` (${bits})` : ""}`, true));
+  } else if (missing.length && missing.length === primary.length) {
+    checks.push(check("code_reachable", "fail", `Not reachable: ${list(missing.map(label))} (private, deleted or the link is mistyped)`, true));
   } else {
-    const unchecked = gh.find((c) => c.github?.status === "unchecked" && c.github.reason);
-    const why = unchecked?.github?.reason ?? (nonGh.length ? `only GitHub repositories are checked; ${list(nonGh.map(label))} not verified` : "not checked");
+    const why = primary.find((c) => c.repo?.status === "unchecked" && c.repo.reason)?.repo?.reason ?? "not checked";
     checks.push(check("code_reachable", "warn", `Not verified: ${why}`, true));
   }
 
-  // code_license
+  // code_license (from the host's details when it reports one)
   if (!primary.length) {
     checks.push(check("code_license", "skip", "No primary code link", true));
-  } else if (ghOk.length) {
-    const licensed = ghOk.find((c) => c.github?.license && c.github.license !== "NOASSERTION");
+  } else if (ok.length) {
+    const withDetails = ok.filter((c) => c.repo?.licenseChecked);
+    const licensed = withDetails.find((c) => c.repo?.license && c.repo.license !== "NOASSERTION");
     if (licensed) {
-      checks.push(check("code_license", "pass", `${licensed.github!.license} (detected by GitHub in ${licensed.github!.fullName ?? licensed.id})`, true));
-    } else if (ghOk.some((c) => c.github?.license === "NOASSERTION")) {
-      checks.push(check("code_license", "warn", "GitHub found a license file but could not identify it; check reuse terms by hand", true));
+      checks.push(check("code_license", "pass", `${licensed.repo!.license} (license file in ${current(licensed)})`, true));
+    } else if (withDetails.some((c) => c.repo?.license === "NOASSERTION")) {
+      checks.push(check("code_license", "warn", "A license file exists but could not be identified; check reuse terms by hand", true));
+    } else if (withDetails.length) {
+      checks.push(check("code_license", "warn", `No license file detected in ${list(withDetails.map(current))}; reuse terms are unclear`, true));
     } else {
-      checks.push(check("code_license", "warn", `No license file detected in ${list(ghOk.map((c) => c.github?.fullName ?? c.id ?? c.url))}; reuse terms are unclear`, true));
+      checks.push(check("code_license", "warn", `License not checked: read the license file in ${current(ok[0]!)}`, true));
     }
   } else {
-    checks.push(check("code_license", "warn", "License unknown: the code host was not checked", true));
+    checks.push(check("code_license", "warn", "License unknown: the code was not reachable", true));
   }
 
   // data_found

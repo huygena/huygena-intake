@@ -104,27 +104,35 @@ export const LinkOriginSchema = z.enum([
 ]);
 export type LinkOrigin = z.infer<typeof LinkOriginSchema>;
 
-export const GithubCheckSchema = z.object({
-  /** `ok`: the API returned the repo. `not_found`: 404 (deleted, private or a typo). `unchecked`: not asked or no answer. */
+export const RepoCheckSchema = z.object({
+  /** `ok`: the host served the repository or record. `not_found`: 401/403/404 (private, deleted or a typo). `unchecked`: not asked or no answer. */
   status: z.enum(["ok", "not_found", "unchecked"]),
   reason: z.string().nullable(),
-  /** `owner/repo` as GitHub reports it now. Differs from the link when the repo was renamed or moved. */
+  /** `git`: git smart-HTTP (`<repo>.git/info/refs`, any git host, no token). `http`: plain GET of an archive or record page. */
+  via: z.enum(["git", "http"]).nullable(),
+  /** `owner/repo` as the host reports it now. Differs from the link when the repo was renamed or moved. */
   fullName: z.string().nullable(),
   defaultBranch: z.string().nullable(),
-  /** SPDX ID from GitHub's license detection, `null` when no license file was detected. */
+  /** Commit at the tip of the default branch when the check ran. */
+  head: z.string().nullable(),
+  /** SPDX ID from the host's license detection or the repository's license file. `NOASSERTION`: a file exists but was not recognized. */
   license: z.string().nullable(),
   stars: z.number().int().nullable(),
   pushedAt: z.string().nullable(),
   archived: z.boolean().nullable(),
   fork: z.boolean().nullable(),
   description: z.string().nullable(),
+  /** `true` when the host's public API answered with stars/activity details. */
+  details: z.boolean(),
+  /** `true` when the license was looked for (host license detection, or the repository's LICENSE/COPYING file). */
+  licenseChecked: z.boolean(),
 });
-export type GithubCheck = z.infer<typeof GithubCheckSchema>;
+export type RepoCheck = z.infer<typeof RepoCheckSchema>;
 
 export const CodeLinkSchema = FoundCodeSchema.extend({
   foundIn: z.array(LinkOriginSchema),
-  /** Present for GitHub repositories. */
-  github: GithubCheckSchema.nullable(),
+  /** Reachability check for the paper's own code (any host). `null` before checks run. */
+  repo: RepoCheckSchema.nullable(),
 });
 export type CodeLink = z.infer<typeof CodeLinkSchema>;
 
@@ -213,7 +221,7 @@ export const ReadinessSchema = z.object({
 });
 export type Readiness = z.infer<typeof ReadinessSchema>;
 
-export const SourceNameSchema = z.enum(["crossref", "arxiv", "biorxiv", "europepmc", "ncbi", "github"]);
+export const SourceNameSchema = z.enum(["crossref", "arxiv", "biorxiv", "europepmc", "ncbi", "git", "web", "github", "gitlab", "codeberg", "bitbucket"]);
 export type SourceName = z.infer<typeof SourceNameSchema>;
 
 /** One HTTP call made while building the brief. */

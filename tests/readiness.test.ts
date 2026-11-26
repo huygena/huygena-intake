@@ -1,17 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { assessReadiness, type CodeLink, type DataLink, type GithubCheck, type ReadinessInput } from "../src/index.js";
+import { assessReadiness, type CodeLink, type DataLink, type RepoCheck, type ReadinessInput } from "../src/index.js";
 
-const gh = (over: Partial<GithubCheck> = {}): GithubCheck => ({
+const gh = (over: Partial<RepoCheck> = {}): RepoCheck => ({
   status: "ok",
   reason: null,
+  via: "git",
   fullName: "lab/method",
   defaultBranch: "main",
+  head: null,
   license: "MIT",
   stars: 10,
   pushedAt: "2025-01-02T03:04:05Z",
   archived: false,
   fork: false,
   description: null,
+  details: true,
+  licenseChecked: true,
   ...over,
 });
 
@@ -23,7 +27,7 @@ const repo = (over: Partial<CodeLink> = {}): CodeLink => ({
   role: "primary",
   context: "Our code is at https://github.com/lab/method.",
   foundIn: ["code_statement"],
-  github: gh(),
+  repo: gh(),
   ...over,
 });
 
@@ -77,38 +81,43 @@ describe("assessReadiness", () => {
     expect(r.checks[0]!.reason).toContain("github.com/tensorflow/tensorflow");
   });
 
-  it("fails code_reachable when every primary repo is a GitHub 404", () => {
-    const s = status(base({ code: [repo({ github: gh({ status: "not_found", fullName: null }) })] }));
+  it("fails code_reachable when no primary repo is reachable", () => {
+    const s = status(base({ code: [repo({ repo: gh({ status: "not_found", fullName: null }) })] }));
     expect(s.code_reachable).toBe("fail");
-    expect(assessReadiness(base({ code: [repo({ github: gh({ status: "not_found" }) })] })).level).toBe("not_ready");
+    expect(assessReadiness(base({ code: [repo({ repo: gh({ status: "not_found" }) })] })).level).toBe("not_ready");
   });
 
   it("passes code_reachable when one of several repos is live", () => {
-    const s = status(base({ code: [repo({ id: "a/gone", github: gh({ status: "not_found" }) }), repo()] }));
+    const s = status(base({ code: [repo({ id: "a/gone", repo: gh({ status: "not_found" }) }), repo()] }));
     expect(s.code_reachable).toBe("pass");
   });
 
-  it("warns with the reason when GitHub was not checked", () => {
-    const r = assessReadiness(base({ code: [repo({ github: gh({ status: "unchecked", reason: "GitHub rate limit reached" }) })] }));
-    expect(r.checks[1]).toMatchObject({ status: "warn", reason: "Not verified: GitHub rate limit reached" });
+  it("warns with the reason when the host did not answer", () => {
+    const r = assessReadiness(base({ code: [repo({ repo: gh({ status: "unchecked", reason: "GitHub did not answer: timed out after 15s" }) })] }));
+    expect(r.checks[1]).toMatchObject({ status: "warn", reason: "Not verified: GitHub did not answer: timed out after 15s" });
     expect(r.checks[2]).toMatchObject({ id: "code_license", status: "warn" });
     expect(r.level).toBe("partial");
   });
 
-  it("warns that non-GitHub hosts are not verified", () => {
-    const r = assessReadiness(base({ code: [repo({ host: "gitlab", url: "https://gitlab.com/g/p", id: "g/p", github: null })] }));
-    expect(r.checks[1]!.status).toBe("warn");
-    expect(r.checks[1]!.reason).toContain("only GitHub repositories are checked; gitlab.com/g/p");
+  it("treats every host the same", () => {
+    const gl = repo({ host: "gitlab", url: "https://gitlab.com/g/p", id: "g/p", repo: gh({ fullName: "g/p", license: null, details: false, licenseChecked: false }) });
+    const r = assessReadiness(base({ code: [gl] }));
+    expect(r.checks[1]).toMatchObject({ status: "pass", reason: "gitlab.com/g/p is live on GitLab (default branch main, last push 2025-01-02)" });
+    expect(r.checks[2]).toMatchObject({ status: "warn", reason: "License not checked: read the license file in gitlab.com/g/p" });
+    const cb = repo({ host: "codeberg", url: "https://codeberg.org/g/p", id: "g/p", repo: gh({ status: "not_found", fullName: null }) });
+    expect(assessReadiness(base({ code: [cb] })).checks[1]).toMatchObject({ status: "fail", reason: "Not reachable: codeberg.org/g/p (private, deleted or the link is mistyped)" });
+    const zen = repo({ host: "zenodo", url: "https://zenodo.org/records/9", id: "zenodo.9", repo: gh({ via: "http", fullName: "zenodo.9", details: false, licenseChecked: false, license: null }) });
+    expect(assessReadiness(base({ code: [zen] })).checks[1]!.reason).toBe("zenodo.org/records/9 is reachable on Zenodo (default branch main, last push 2025-01-02)");
   });
 
-  it("checks the license GitHub detected", () => {
-    expect(status(base({ code: [repo({ github: gh({ license: null }) })] })).code_license).toBe("warn");
-    expect(assessReadiness(base({ code: [repo({ github: gh({ license: "NOASSERTION" }) })] })).checks[2]!.reason).toMatch(/could not identify/);
-    expect(assessReadiness(base()).checks[2]!.reason).toBe("MIT (detected by GitHub in lab/method)");
+  it("checks the license the host detected", () => {
+    expect(status(base({ code: [repo({ repo: gh({ license: null }) })] })).code_license).toBe("warn");
+    expect(assessReadiness(base({ code: [repo({ repo: gh({ license: "NOASSERTION" }) })] })).checks[2]!.reason).toMatch(/could not be identified/);
+    expect(assessReadiness(base()).checks[2]!.reason).toBe("MIT (license file in github.com/lab/method)");
   });
 
   it("notes archived repos and moved repos without failing", () => {
-    const r = assessReadiness(base({ code: [repo({ github: gh({ archived: true, fullName: "neworg/method" }) })] }));
+    const r = assessReadiness(base({ code: [repo({ repo: gh({ archived: true, fullName: "neworg/method" }) })] }));
     expect(r.checks[1]).toMatchObject({ status: "pass" });
     expect(r.checks[1]!.reason).toBe("github.com/neworg/method is live on GitHub (default branch main, last push 2025-01-02, archived (read-only))");
   });
@@ -135,7 +144,7 @@ describe("assessReadiness", () => {
   it("passes code_snapshot for an archive or a pinned commit, and never changes the level", () => {
     expect(status(base()).code_snapshot).toBe("warn");
     expect(assessReadiness(base()).level).toBe("ready");
-    const zen = repo({ host: "zenodo", url: "https://doi.org/10.5281/zenodo.9", id: "zenodo.9", github: null });
+    const zen = repo({ host: "zenodo", url: "https://doi.org/10.5281/zenodo.9", id: "zenodo.9", repo: null });
     expect(assessReadiness(base({ code: [repo(), zen] })).checks[5]!.reason).toBe("Archived copy: doi.org/10.5281/zenodo.9");
     expect(status(base({ code: [repo({ ref: "3f2a9c1d0e8b" })] })).code_snapshot).toBe("pass");
     expect(status(base({ code: [repo({ ref: "main" })] })).code_snapshot).toBe("warn");

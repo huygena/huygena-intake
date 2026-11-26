@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Live smoke test against the real APIs. Not part of `pnpm test`.
-// Usage: pnpm build && pnpm smoke        (set GITHUB_TOKEN to avoid the 60/hour limit)
+// Usage: pnpm build && pnpm smoke        (no token needed)
 import { formatBrief, intake, search } from "../dist/index.js";
 
 const PAPERS = [
@@ -23,12 +23,12 @@ for (const p of PAPERS) {
     const problems = [];
     if (p.expect.level && b.readiness.level !== p.expect.level) problems.push(`level ${b.readiness.level}, expected ${p.expect.level}`);
     if (p.expect.repo && !primary.some((c) => c.id?.toLowerCase() === p.expect.repo.toLowerCase())) problems.push(`primary repo ${p.expect.repo} not found`);
-    const gh = primary.find((c) => c.github)?.github;
+    const gh = primary.find((c) => c.repo)?.repo;
     console.log(`${problems.length ? "FAIL" : "ok  "}  ${p.label}  [${secs}s]`);
     console.log(`      ${b.paper.title}`);
     console.log(`      readiness ${b.readiness.level.toUpperCase()} · ${b.readiness.summary}`);
     console.log(
-      `      code: ${primary.map((c) => c.id ?? c.url).join(", ") || "none"}${gh ? ` (GitHub ${gh.status}${gh.license ? `, ${gh.license}` : ""})` : ""} · tools mentioned ${b.code.length - primary.length} · data ${b.data.length}`,
+      `      code: ${primary.map((c) => c.id ?? c.url).join(", ") || "none"}${gh ? ` (repo ${gh.status}${gh.license ? `, ${gh.license}` : ""})` : ""} · tools mentioned ${b.code.length - primary.length} · data ${b.data.length}`,
     );
     console.log(`      statements: code ${b.statements.code ? "yes" : "no"}, data ${b.statements.data ? "yes" : "no"} · full text ${b.access.fullText ? b.access.fullText.id : "none"}`);
     for (const w of b.warnings) console.log(`      note: ${w}`);

@@ -10,19 +10,24 @@ import { fetchArxiv } from "./sources/arxiv.js";
 import { fetchBiorxiv, type BiorxivRecord } from "./sources/biorxiv.js";
 import { fetchCrossref, type CrossrefWork } from "./sources/crossref.js";
 import { fetchEpmcFullText, fetchEpmcRecord, type EpmcRecord } from "./sources/europepmc.js";
-import { checkGithubRepo, unchecked, type GithubCtx } from "./sources/github.js";
+import { checkRepo, unchecked, type RepoCtx } from "./sources/repo.js";
 import { fetchIdConv, fetchPmcFullText } from "./sources/ncbi.js";
 import { readEnv } from "./text.js";
 import { VERSION } from "./version.js";
 
 export interface IntakeOptions extends HttpOptions {
-  /** GitHub token for 5,000 API requests/hour instead of 60. Default: `GITHUB_TOKEN` env var. Only sent to api.github.com. */
+  /**
+   * Optional GitHub token. Only sent to api.github.com and only used for repository details (license, stars, last push).
+   * Not needed: reachability is checked over git for every host. Default: `GITHUB_TOKEN` env var.
+   */
   githubToken?: string;
   /** Read open-access full text from PMC / Europe PMC for statements and links. Default `true`. */
   fullText?: boolean;
-  /** Check GitHub repositories through the API. Default `true`. */
+  /** Check the paper's own code links (any host: git over HTTPS, archives by URL). Default `true`. */
+  checkRepos?: boolean;
+  /** @deprecated Use `checkRepos`. */
   checkGithub?: boolean;
-  /** Most GitHub repositories to check per brief. Default 5. Only links the paper gives as its own code are checked. */
+  /** Most code links to check per brief. Default 5. Only links the paper gives as its own code are checked. */
   maxRepoChecks?: number;
 }
 
@@ -133,7 +138,7 @@ export async function intake(input: string, opts: IntakeOptions = {}): Promise<B
       `Not a DOI, arXiv ID, bioRxiv/medRxiv DOI, PubMed ID or PMCID: ${JSON.stringify(String(input).slice(0, 200))}`,
     );
   }
-  const ctx: GithubCtx = { ...makeCtx(opts), githubToken: opts.githubToken ?? readEnv("GITHUB_TOKEN") };
+  const ctx: RepoCtx = { ...makeCtx(opts), githubToken: opts.githubToken ?? readEnv("GITHUB_TOKEN") };
   const paper = emptyPaper();
   const access: Access = { openAccess: null, basis: null, license: null, licenseUrl: null, fullText: null };
   const statements: Brief["statements"] = { code: null, data: null };
@@ -330,7 +335,7 @@ export async function intake(input: string, opts: IntakeOptions = {}): Promise<B
       const key = (c.id ? `${c.host}:${c.id}` : c.url).toLowerCase();
       const prev = code.get(key);
       if (!prev) {
-        code.set(key, { ...c, foundIn: [t.origin], github: null });
+        code.set(key, { ...c, foundIn: [t.origin], repo: null });
         continue;
       }
       if (!prev.foundIn.includes(t.origin)) prev.foundIn.push(t.origin);
@@ -353,22 +358,23 @@ export async function intake(input: string, opts: IntakeOptions = {}): Promise<B
   const codeList = [...code.values()].sort((a, b) => (a.role === b.role ? rank(a.foundIn) - rank(b.foundIn) : a.role === "primary" ? -1 : 1));
   const dataList = [...data.values()].sort((a, b) => rank(a.foundIn) - rank(b.foundIn));
 
-  // 5. GitHub checks for the paper's own repositories.
+  // 5. Reachability checks for the paper's own code, on any host.
   const max = opts.maxRepoChecks ?? 5;
-  const targets = codeList.filter((c) => c.host === "github" && c.role === "primary" && c.id).slice(0, opts.checkGithub === false ? 0 : max);
+  const enabled = opts.checkRepos ?? opts.checkGithub ?? true;
+  const targets = codeList.filter((c) => c.role === "primary").slice(0, enabled ? max : 0);
   await Promise.all(
     targets.map(async (c) => {
-      c.github = await checkGithubRepo(ctx, c.id!);
+      c.repo = await checkRepo(ctx, c);
     }),
   );
   for (const c of codeList) {
-    if (c.host !== "github" || c.github) continue;
-    c.github = unchecked(
-      opts.checkGithub === false
-        ? "GitHub checks turned off"
+    if (c.repo) continue;
+    c.repo = unchecked(
+      !enabled
+        ? "Repository checks turned off"
         : c.role === "mentioned"
           ? "Not checked: cited as a tool, not as the paper's code"
-          : `Not checked: more than ${max} repositories`,
+          : `Not checked: more than ${max} code links`,
     );
   }
 

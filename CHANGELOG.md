@@ -2,6 +2,19 @@
 
 All notable changes to this project are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## v0.8.0 · 2026-11-26
+
+Code checks no longer depend on GitHub or on any token.
+
+### Changed
+
+- **Breaking:** `code[].github` is now `code[].repo` (`RepoCheck`), filled for every primary code link on any host. New fields: `via` (`git` or `http`), `head` (commit at the tip of the default branch), `details` and `licenseChecked`. `GithubCheck` is gone.
+- Reachability is checked over the git protocol (`<repo>.git/info/refs`), the same request `git clone` makes, for GitHub, GitLab (including self-hosted), Codeberg and Bitbucket. Archives such as Zenodo or Software Heritage are checked by URL. No API, no account, no rate limit.
+- The license comes from the host's license detection when its API answers, otherwise from the repository's own `LICENSE`/`COPYING` file.
+- Host APIs only add extras (stars, last push, archived, moved). When one is down or rate-limited, the readiness result stays the same.
+- Readiness and warnings no longer print token hints or rate-limit reset times.
+- `checkGithub` and `--no-github` become `checkRepos` and `--no-repo-check`; the old names still work.
+
 ## v0.7.0 · 2026-11-26
 
 Same API and brief format (`huygena.brief/v1`) as 0.1.0. This version is the one the Huygena app runs in production at dapp.huygena.xyz.

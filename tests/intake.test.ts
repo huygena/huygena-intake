@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { BriefSchema, IntakeError, intake, type Brief } from "../src/index.js";
-import { fakeFetch, timeoutError, type Route } from "./helpers.js";
+import { fakeFetch, fx, gitRefs, timeoutError, type Route } from "./helpers.js";
+
+const fxReplace = (name: string, from: string, to: string) => fx(name).split(from).join(to);
 
 const repoJson = (full: string, license: string | null) =>
   JSON.stringify({ full_name: full, default_branch: "main", license: license ? { spdx_id: license } : null, stargazers_count: 7, pushed_at: "2024-05-06T00:00:00Z", archived: false, fork: false, description: null });
@@ -10,6 +12,7 @@ const AF2: Route[] = [
   { match: /idconv/, file: "idconv-alphafold2.json" },
   { match: /efetch\.fcgi\?db=pmc&id=8371605/, file: "pmc-alphafold2.xml" },
   { match: /europepmc\/webservices\/rest\/search/, file: "epmc-alphafold2.json" },
+  { match: /github\.com\/deepmind\/alphafold\.git\/info\/refs/, body: gitRefs() },
   { match: /api\.github\.com\/repos\/deepmind\/alphafold$/, file: "github-alphafold.json" },
 ];
 
@@ -29,7 +32,7 @@ describe("intake (recorded responses)", () => {
     expect(unrouted).toEqual([]);
     expect(brief).toMatchObject({
       schema: "huygena.brief/v1",
-      tool: { name: "huygena-intake", version: "0.7.0" },
+      tool: { name: "huygena-intake", version: "0.8.0" },
       input: "https://doi.org/10.1038/s41586-021-03819-2",
       id: { kind: "doi", value: "10.1038/s41586-021-03819-2" },
       paper: { title: "Highly accurate protein structure prediction with AlphaFold", year: 2021, venue: "Nature", pmid: "34265844", pmcid: "PMC8371605" },
@@ -38,15 +41,15 @@ describe("intake (recorded responses)", () => {
     });
     const primary = brief.code.filter((c) => c.role === "primary");
     expect(primary.map((c) => c.id)).toEqual(["deepmind/alphafold"]);
-    expect(primary[0]!.github).toMatchObject({ status: "ok", fullName: "google-deepmind/alphafold", license: "Apache-2.0" });
+    expect(primary[0]!.repo).toMatchObject({ status: "ok", via: "git", fullName: "google-deepmind/alphafold", license: "Apache-2.0", head: "c77e5d2a8961d1a353632c462914ff0a32a950f6", details: true });
     expect(primary[0]!.foundIn).toContain("code_statement");
     // Tools the paper used are listed but not promoted or checked.
     const tf = brief.code.find((c) => c.id === "tensorflow/tensorflow")!;
-    expect(tf).toMatchObject({ role: "mentioned", github: { status: "unchecked" } });
+    expect(tf).toMatchObject({ role: "mentioned", repo: { status: "unchecked" } });
     expect(brief.data.filter((d) => d.repository === "pdb").map((d) => d.id)).toEqual(expect.arrayContaining(["6Y4F", "7JTL"]));
     expect(brief.statements.code).toMatch(/^Source code for the AlphaFold model/);
     expect(brief.statements.data).toMatch(/^All input data are freely available/);
-    expect(brief.sources.map((s) => s.name).sort()).toEqual(["crossref", "europepmc", "github", "ncbi", "ncbi"]);
+    expect(brief.sources.map((s) => s.name).sort()).toEqual(["crossref", "europepmc", "git", "github", "ncbi", "ncbi"]);
     expect(brief.warnings).toEqual([]);
   });
 
@@ -64,32 +67,49 @@ describe("intake (recorded responses)", () => {
     expect(brief.warnings).toEqual(["Europe PMC lookup: timed out after 12s; open-access flag and license from Europe PMC are missing"]);
   });
 
-  it("marks repos unchecked when GitHub rate-limits and stays partial", async () => {
+  it("stays ready when the GitHub API rate-limits: reachability is checked over git, without a token", async () => {
     const routes: Route[] = [
-      ...AF2.filter((r) => !/github/.test(r.match.source)),
+      ...AF2.filter((r) => !/api\\.github/.test(r.match.source)),
       { match: /api\.github\.com/, status: 403, body: '{"message":"API rate limit exceeded"}', headers: { "x-ratelimit-remaining": "0" } },
+      { match: /raw\.githubusercontent\.com\/deepmind\/alphafold\/main\/LICENSE$/, body: "                                 Apache License\n                           Version 2.0, January 2004" },
     ];
     const { brief } = await run("10.1038/s41586-021-03819-2", routes);
-    expect(brief.code[0]!.github?.status).toBe("unchecked");
-    expect(brief.readiness.level).toBe("partial");
-    expect(brief.readiness.checks.find((c) => c.id === "code_reachable")!.reason).toMatch(/rate limit/);
+    expect(brief.code[0]!.repo).toMatchObject({ status: "ok", via: "git", details: false, license: "Apache-2.0", licenseChecked: true });
+    expect(brief.readiness.level).toBe("ready");
+    const text = JSON.stringify(brief.readiness);
+    expect(text).not.toMatch(/GITHUB_TOKEN|rate limit|resets/);
+    expect(brief.readiness.checks.find((c) => c.id === "code_license")).toMatchObject({ status: "pass", reason: "Apache-2.0 (license file in github.com/deepmind/alphafold)" });
   });
 
-  it("fails code_reachable on a GitHub 404", async () => {
-    const routes: Route[] = [...AF2.filter((r) => !/github/.test(r.match.source)), { match: /api\.github\.com/, status: 404, file: "github-404.json" }];
-    const { brief } = await run("10.1038/s41586-021-03819-2", routes);
+  it("fails code_reachable when git says the repository is gone", async () => {
+    const routes: Route[] = [...AF2.filter((r) => !/github/.test(r.match.source)), { match: /\.git\/info\/refs/, status: 401, body: "Authentication required" }];
+    const { brief, calls } = await run("10.1038/s41586-021-03819-2", routes);
     expect(brief.readiness.level).toBe("not_ready");
+    expect(calls.some((c) => /api\.github/.test(c.url))).toBe(false);
+  });
+
+  it("checks GitLab code the same way", async () => {
+    const lora = await run("2106.09685", [
+      { match: /export\.arxiv\.org/, body: fxReplace("arxiv-lora.xml", "https://github.com/microsoft/LoRA", "https://gitlab.com/lab/lora") },
+      { match: /gitlab\.com\/lab\/lora\.git\/info\/refs/, body: gitRefs("master") },
+      { match: /gitlab\.com\/api\/v4\/projects\/lab%2Flora/, body: JSON.stringify({ path_with_namespace: "lab/lora", default_branch: "master", license: { key: "apache-2.0" }, star_count: 3, last_activity_at: "2025-02-03T00:00:00Z", archived: false }) },
+    ]);
+    expect(lora.unrouted).toEqual([]);
+    expect(lora.brief.code[0]!.repo).toMatchObject({ status: "ok", via: "git", defaultBranch: "master", license: "Apache-2.0", details: true });
+    const checks = Object.fromEntries(lora.brief.readiness.checks.map((c) => [c.id, c.reason]));
+    expect(checks.code_reachable).toBe("gitlab.com/lab/lora is live on GitLab (default branch master, last push 2025-02-03)");
+    expect(checks.code_license).toBe("Apache-2.0 (license file in gitlab.com/lab/lora)");
   });
 
   it("skips network work that options turn off", async () => {
-    const { brief, calls } = await run("10.1038/s41586-021-03819-2", AF2, { fullText: false, checkGithub: false });
+    const { brief, calls } = await run("10.1038/s41586-021-03819-2", AF2, { fullText: false, checkRepos: false });
     expect(calls.some((c) => /efetch|github/.test(c.url))).toBe(false);
     expect(brief.access.fullText).toBeNull();
     expect(brief.statements).toEqual({ code: null, data: null });
     // AlphaFold 2 names its code only in the full text.
     expect(brief.code).toEqual([]);
     const lora = await run("2106.09685", [{ match: /export\.arxiv\.org/, file: "arxiv-lora.xml" }], { checkGithub: false });
-    expect(lora.brief.code[0]!.github).toMatchObject({ status: "unchecked", reason: "GitHub checks turned off" });
+    expect(lora.brief.code[0]!.repo).toMatchObject({ status: "unchecked", reason: "Repository checks turned off" });
     expect(lora.calls.some((c) => /github/.test(c.url))).toBe(false);
   });
 
@@ -99,7 +119,9 @@ describe("intake (recorded responses)", () => {
       { match: /api\.crossref\.org/, file: "crossref-plos-enrichment.json" },
       { match: /efetch/, file: "pmc-plos.xml" },
       { match: /europepmc/, file: "epmc-plos-enrichment.json" },
+      { match: /github\.com\/markziemann\/SurveyEnrichmentMethods\.git\/info\/refs/, body: gitRefs() },
       { match: /api\.github\.com\/repos\/markziemann\/SurveyEnrichmentMethods$/, file: "github-surveyenrichment.json" },
+      { match: /10\.5281\/zenodo\.5763096/, body: "<html>record</html>" },
     ]);
     expect(unrouted).toEqual([]);
     expect(ids(brief)).toEqual(["primary:markziemann/SurveyEnrichmentMethods", "primary:zenodo.5763096"]);
@@ -111,6 +133,7 @@ describe("intake (recorded responses)", () => {
   it("builds an arXiv brief from the abstract", async () => {
     const { brief, unrouted } = await run("https://arxiv.org/abs/2106.09685", [
       { match: /export\.arxiv\.org/, file: "arxiv-lora.xml" },
+      { match: /github\.com\/microsoft\/LoRA\.git\/info\/refs/, body: gitRefs() },
       { match: /api\.github\.com\/repos\/microsoft\/LoRA$/, body: repoJson("microsoft/LoRA", "MIT") },
     ]);
     expect(unrouted).toEqual([]);
@@ -131,6 +154,7 @@ describe("intake (recorded responses)", () => {
     const { brief } = await run("https://www.biorxiv.org/content/10.1101/2021.08.15.456425v3", [
       { match: /api\.biorxiv\.org\/details\/biorxiv/, file: "biorxiv-colabfold.json" },
       { match: /europepmc/, file: "epmc-colabfold-preprint.json" },
+      { match: /github\.com\/sokrypton\/ColabFold\.git\/info\/refs/, body: gitRefs() },
       { match: /api\.github\.com\/repos\/sokrypton\/ColabFold$/, body: repoJson("sokrypton/ColabFold", "MIT") },
     ]);
     expect(brief.paper).toMatchObject({ version: 3, publishedDoi: "10.1038/s41592-022-01488-1", venue: "bioRxiv · bioinformatics" });

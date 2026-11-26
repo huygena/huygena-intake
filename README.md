@@ -91,7 +91,7 @@ It accepts IDs in the forms people paste:
 | `--json` | Print the brief (or search result) as JSON |
 | `--all` | Show every link and the full statements |
 | `--no-full-text` | Do not read PMC or Europe PMC full text |
-| `--no-github` | Do not call the GitHub API |
+| `--no-repo-check` | Do not contact code hosts (`--no-github` still works) |
 | `--require ready\|partial` | Exit 4 unless readiness is at least this level. Handy in scripts and CI |
 | `--timeout <sec>` | Per-request timeout. Default 30, search 60 |
 | `--limit <n>` | search: results to return, 1 to 100. Default 10 |
@@ -99,7 +99,7 @@ It accepts IDs in the forms people paste:
 
 | Variable | Meaning |
 |---|---|
-| `GITHUB_TOKEN` | Raises the GitHub limit from 60 to 5,000 requests an hour. Sent only to api.github.com |
+| `GITHUB_TOKEN` | Optional, never needed. Only used for GitHub repository extras (stars, last push). Sent only to api.github.com |
 | `HUYGENA_MAILTO` | Contact email for Crossref's polite pool and NCBI. Sent only to those two. Never required |
 | `NO_COLOR` | Turn off color. Output always prints `pass`, `warn` and `fail` as words, so it reads fine in monochrome |
 
@@ -150,9 +150,9 @@ const hits = await search("ColabFold", { limit: 5, sort: "cited" });
 | `BriefSchema`, `SearchResultSchema`, … | Zod schemas for every type |
 | `IntakeError` | Thrown with `code`: `invalid_id`, `invalid_query`, `not_found`, `upstream` or `timeout` |
 
-`IntakeOptions`: `fetch` (bring your own, for tests, proxies or edge runtimes), `timeoutMs` (default 30000), `signal`, `userAgent`, `mailto`, `githubToken`, `fullText` (default true), `checkGithub` (default true), `maxRepoChecks` (default 5).
+`IntakeOptions`: `fetch` (bring your own, for tests, proxies or edge runtimes), `timeoutMs` (default 30000), `signal`, `userAgent`, `mailto`, `githubToken` (optional), `fullText` (default true), `checkRepos` (default true; `checkGithub` is a deprecated alias), `maxRepoChecks` (default 5).
 
-`intake` throws only when it cannot identify the paper at all. A slow Europe PMC, a GitHub rate limit or a missing full text become entries in `brief.warnings` and the brief still comes back.
+`intake` throws only when it cannot identify the paper at all. A slow Europe PMC, a code host that does not answer or a missing full text become entries in `brief.warnings` and the brief still comes back.
 
 ### The brief
 
@@ -181,8 +181,8 @@ Seven checks. Five are core and set the level. Two are advisory and never change
 | Check | Core | pass | warn | fail | skip |
 |---|---|---|---|---|---|
 | `code_found` | yes | The paper links its own code | Only tools the paper used are linked | No code link anywhere | |
-| `code_reachable` | yes | A primary GitHub repo answers 200 | Not verified: rate limit, `--no-github`, or a host other than GitHub | Every primary repo is a GitHub 404 | No primary code link |
-| `code_license` | yes | GitHub detected a license | No license file, an unidentified license, or the host was not checked | | No primary code link |
+| `code_reachable` | yes | A primary code link answers: git hosts over the git protocol, archives by URL | Not verified: the host did not answer, or `--no-repo-check` | Every primary link is private, deleted or mistyped (401/403/404) | No primary code link |
+| `code_license` | yes | A license was identified (host detection or the repo's LICENSE/COPYING file) | No license file, an unidentified license, or not checked | | No primary code link |
 | `data_found` | yes | At least one dataset link or accession | None found. The reason says whether the statement says "on request" or names nothing | | |
 | `open_access` | yes | Free to read | Closed, or status unknown | | |
 | `code_snapshot` | no | An archived copy (Zenodo, Software Heritage, Code Ocean, Figshare, OSF) or a link pinned to a commit | Code only in a git repo that can change | | No code link |
@@ -212,9 +212,10 @@ Why `data_found` only warns: many papers use public benchmarks they name without
 | [bioRxiv / medRxiv API](https://api.biorxiv.org) | preprint metadata, versions, license, journal DOI | none |
 | [Europe PMC](https://europepmc.org/RestfulWebService) | open-access flag, license, search, full text fallback | none |
 | [NCBI PMC](https://www.ncbi.nlm.nih.gov/pmc/tools/developers/) | ID converter, full text JATS through E-utilities | none |
-| [GitHub REST](https://docs.github.com/rest/repos/repos#get-a-repository) | repository checks | optional `GITHUB_TOKEN` |
+| Code hosts over git (GitHub, GitLab incl. self-hosted, Codeberg, Bitbucket) | reachability, default branch, head commit (`<repo>.git/info/refs`), license file (raw URL) | none |
+| Host APIs (GitHub, GitLab, Codeberg, Bitbucket) | optional extras: stars, last push, archived, moved | none (`GITHUB_TOKEN` optional) |
 
-Every request sends `User-Agent: huygena-intake/0.7.0 (+https://github.com/huygena/huygena-intake)`. NCBI also gets `tool=huygena-intake`. Full text comes from NCBI first because it is much faster than Europe PMC from most places. Europe PMC is asked in parallel and its wait is capped, so a slow day there costs a few seconds, not the brief.
+Every request sends `User-Agent: huygena-intake/0.8.0 (+https://github.com/huygena/huygena-intake)`. NCBI also gets `tool=huygena-intake`. Full text comes from NCBI first because it is much faster than Europe PMC from most places. Europe PMC is asked in parallel and its wait is capped, so a slow day there costs a few seconds, not the brief.
 
 ## How it fits Huygena
 
@@ -238,7 +239,7 @@ Known limits:
 
 - arXiv full text is not parsed. For arXiv papers, links come from the abstract and the author comment.
 - bioRxiv full text XML is behind a bot check, so preprints get no availability statements unless Europe PMC has the full text. When a preprint has a journal version, the brief says so and you can run intake on that DOI.
-- Only GitHub repositories are checked over the API. Other hosts are listed with a warning.
+- Code checks are the same for every host and need no account or token: reachability over the git protocol, the license from the repository's own LICENSE/COPYING file. Host APIs only add extras (stars, last push); if one is down or rate-limited the result does not change. Archives (Zenodo, Software Heritage, Code Ocean, Figshare, OSF) are checked by URL.
 - The `primary` / `mentioned` split is a rule set, not a model. It is right on the papers we test against and it will be wrong on some papers. Every link carries its sentence, so you can check.
 - Europe PMC can be slow. A brief takes 1 to 5 seconds when it answers quickly. On a slow day the brief waits up to 12 seconds for it (20 for papers not in PMC), then goes on without it and says so.
 
@@ -249,7 +250,7 @@ pnpm install
 pnpm typecheck
 pnpm test        # offline
 pnpm build
-pnpm smoke       # live APIs; set GITHUB_TOKEN to avoid the 60/hour limit
+pnpm smoke       # live APIs, no token needed
 ```
 
 ## License

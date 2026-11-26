@@ -24,7 +24,7 @@ Options
   --json             Print the brief (or search result) as JSON
   --all              Show every link instead of the first few per group
   --no-full-text     Do not read PMC / Europe PMC full text
-  --no-github        Do not call the GitHub API
+  --no-repo-check    Do not contact code hosts (alias: --no-github)
   --require <level>  Exit 4 unless readiness is at least <level> (ready | partial)
   --timeout <sec>    Per-request timeout in seconds (default 30, search 60)
   --limit <n>        search: number of results, 1-100 (default 10)
@@ -33,7 +33,7 @@ Options
   -v, --version      Show the version
 
 Environment
-  GITHUB_TOKEN       Raise the GitHub API limit from 60 to 5,000 requests/hour
+  GITHUB_TOKEN       Optional. Only used for GitHub repository details (license, stars); never needed
   HUYGENA_MAILTO     Contact email for Crossref's polite pool and NCBI
   NO_COLOR           Disable color
 
@@ -79,6 +79,7 @@ function parseArgs(argv: string[]): Args {
       case "--no-full-text":
         a.fullText = false;
         break;
+      case "--no-repo-check":
       case "--no-github":
         a.github = false;
         break;
@@ -159,7 +160,7 @@ async function main(argv: string[]): Promise<number> {
     }
     if (args.positional.length > 1) throw new UsageError(`Expected one ID, got ${args.positional.length}. Quote IDs that contain spaces.`);
     const fmt = { color: useColor(), width: Math.max(60, Math.min(process.stdout.columns || 100, 110)), all: args.all };
-    const brief = await intake(args.positional[0]!, { fullText: args.fullText, checkGithub: args.github, timeoutMs: args.timeoutMs });
+    const brief = await intake(args.positional[0]!, { fullText: args.fullText, checkRepos: args.github, timeoutMs: args.timeoutMs });
     process.stdout.write(`${args.json ? JSON.stringify(brief, null, 2) : formatBrief(brief, fmt)}\n`);
     if (args.require) {
       const order: ReadinessLevel[] = ["not_ready", "partial", "ready"];

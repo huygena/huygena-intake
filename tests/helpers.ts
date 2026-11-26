@@ -38,3 +38,9 @@ export function fakeFetch(routes: Route[]) {
   };
   return { fetch, calls, unrouted };
 }
+
+/** A git-upload-pack ref advertisement, the answer to `<repo>.git/info/refs?service=git-upload-pack`. */
+export function gitRefs(branch = "main", head = "c77e5d2a8961d1a353632c462914ff0a32a950f6"): string {
+  const line = `${head} HEAD\0multi_ack thin-pack side-band symref=HEAD:refs/heads/${branch} agent=git/test\n`;
+  return `001e# service=git-upload-pack\n0000${(line.length + 4).toString(16).padStart(4, "0")}${line}0000`;
+}

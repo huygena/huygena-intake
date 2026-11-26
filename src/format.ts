@@ -72,16 +72,17 @@ function codeLabel(c: CodeLink): string {
 
 function fmtCode(c: CodeLink): string[] {
   const lines = [`  ${bold(codeLabel(c))}${c.ref ? dim(` @ ${c.ref}`) : ""}`];
-  const g = c.github;
+  const g = c.repo;
   if (g?.status === "ok") {
     const bits = [
-      g.license && g.license !== "NOASSERTION" ? g.license : g.license === "NOASSERTION" ? "license unrecognized" : "no license file",
+      g.license && g.license !== "NOASSERTION" ? g.license : g.license === "NOASSERTION" ? "license unrecognized" : g.details ? "no license detected" : null,
       g.stars != null ? `${g.stars.toLocaleString("en-US")} stars` : null,
       g.defaultBranch ? `branch ${g.defaultBranch}` : null,
+      g.head ? `commit ${g.head.slice(0, 7)}` : null,
       g.pushedAt ? `last push ${g.pushedAt.slice(0, 10)}` : null,
       g.archived ? "archived" : null,
     ].filter(Boolean);
-    lines.push(`      ${green("live")} · ${bits.join(" · ")}`);
+    lines.push(`      ${green(g.via === "http" ? "reachable" : "live")}${bits.length ? ` · ${bits.join(" · ")}` : ""}`);
     if (g.reason) lines.push(`      ${dim(g.reason)}`);
   } else if (g?.status === "not_found") {
     lines.push(`      ${red("not found")} · ${g.reason ?? ""}`);
