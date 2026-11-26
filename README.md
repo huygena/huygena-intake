@@ -11,22 +11,22 @@ $ huygena-intake 10.1038/s41586-021-03819-2
 Highly accurate protein structure prediction with AlphaFold
 John Jumper, Richard Evans, Alexander Pritzel +31 more · Nature · 2021
 doi:10.1038/s41586-021-03819-2  PMID 34265844  PMC8371605
-Open access: yes, CC-BY-4.0 (Europe PMC) · full text read from PMC (NCBI) PMC8371605
+Open access: yes, CC-BY-4.0 (Crossref license) · full text read from PMC (NCBI) PMC8371605
 
 Readiness  READY  All 5 core checks pass
   pass  code_found              The paper links its own code: github.com/deepmind/alphafold
   pass  code_reachable          github.com/google-deepmind/alphafold is live on GitHub (default
                                 branch main, last push 2026-04-22)
-  pass  code_license            Apache-2.0 (detected by GitHub in google-deepmind/alphafold)
+  pass  code_license            Apache-2.0 (license file in github.com/google-deepmind/alphafold)
   pass  data_found              16 links to datasets or database records
-  pass  open_access             Free to read (CC-BY-4.0); source: Europe PMC
+  pass  open_access             Free to read (CC-BY-4.0); source: Crossref license
   warn  code_snapshot           Code lives only in a git repository that can change after
                                 publication; a run must pin a commit (advisory)
   pass  availability_statement  Found: code availability and data availability (advisory)
 
 Code  1 from the paper, 21 tools mentioned
   github.com/deepmind/alphafold
-      live · Apache-2.0 · 14,956 stars · branch main · last push 2026-04-22
+      live · Apache-2.0 · 14,957 stars · branch main · commit c77e5d2 · last push 2026-04-22
       Repository moved: deepmind/alphafold now redirects to google-deepmind/alphafold
       found in: code statement, full text
   mentioned: tensorflow/tensorflow, deepmind/sonnet, google/jax, deepmind/dm-haiku,
@@ -42,17 +42,20 @@ Data  16 links and accessions
 
   (code and data availability statements trimmed here)
 
-Sources: ncbi 200 0.3s · crossref 200 1.2s · europepmc 200 0.7s · ncbi 200 0.9s · github 200 0.7s
+Sources: ncbi 200 0.3s · crossref 200 1.2s · ncbi 200 1.3s · europepmc timed out after 12s 12.0s ·
+git 200 0.4s · github 200 0.7s
+Note: Europe PMC lookup: timed out after 12s; open-access flag and license from Europe PMC are
+missing
 ```
 
-That is a real run from 2026-11-25. Look at what it got right. The code availability statement of the AlphaFold 2 paper links 17 GitHub repositories. One is the paper's code. The rest are tools it used: TensorFlow, JAX, HH-suite and so on. huygena-intake keeps them apart, checks only the paper's own repository, and notices that `deepmind/alphafold` has moved to `google-deepmind/alphafold`.
+That is a real run of v0.8.0 from 2026-11-26. Look at what it got right. The AlphaFold 2 paper links its own repository next to 21 tools it used: TensorFlow, JAX, HH-suite and so on. huygena-intake keeps them apart, checks only the paper's own repository, and notices that `deepmind/alphafold` has moved to `google-deepmind/alphafold`. Europe PMC was slow during that run, so the brief says so and takes the license from Crossref instead of failing.
 
 ## What you get
 
 - **Paper metadata.** Title, authors, year, venue, abstract, DOI, PMID, PMCID, arXiv ID, preprint version and the journal DOI when a preprint was published.
 - **Access.** Open-access status, where that answer came from, the license (normalized to `CC-BY-4.0` and friends) and whether full text was read.
 - **Code links.** GitHub, GitLab, Bitbucket, Codeberg, Zenodo, Figshare, OSF, Software Heritage, Code Ocean and Hugging Face. Each link is marked `primary` (the paper's own code) or `mentioned` (a tool the paper used), with the sentence it came from and where it was found.
-- **GitHub check.** For the paper's own repositories: exists or 404, moved, default branch, license, stars, last push, archived. Works without a token.
+- **Repository check.** For the paper's own repositories, on any git host: exists, moved, default branch and latest commit over the git protocol, and the license from the repository's own LICENSE or COPYING file. No account or token. Host APIs add stars, last push and archived where they are available.
 - **Data links and accessions.** Zenodo, Figshare, Dryad, OSF, Dataverse, Mendeley Data, Kaggle, Hugging Face datasets, GEO, SRA and BioProject, ENA, ArrayExpress, PDB, UniProt and EMDB.
 - **Availability statements.** The raw "Code availability" and "Data availability" text from the full text, untouched.
 - **Readiness.** Seven checks with a status and a one-line reason each, and an overall `ready`, `partial` or `not_ready`. The rules are below. There is no score.
