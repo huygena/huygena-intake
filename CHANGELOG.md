@@ -2,7 +2,20 @@
 
 All notable changes to this project are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
-## 0.1.0 · 2026-11-25
+## v0.7.0 · 2026-11-26
+
+Same API and brief format (`huygena.brief/v1`) as 0.1.0. This version is the one the Huygena app runs in production at dapp.huygena.xyz.
+
+### Fixed
+
+- Runs on Cloudflare Workers: the global `fetch` is bound before use, so calls no longer fail with "Illegal invocation" on edge runtimes.
+
+### Changed
+
+- README links point to huygena.xyz and to paper lookup at dapp.huygena.xyz/papers.
+- Tagged releases are built, tested and published by `.github/workflows/release.yml`, with the packed tarball attached.
+
+## v0.1.0 · 2026-11-25
 
 First release.
 

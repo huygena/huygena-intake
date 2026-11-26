@@ -1,6 +1,6 @@
 {
   "name": "huygena-intake",
-  "version": "0.1.0",
+  "version": "0.7.0",
   "description": "Turn a DOI, arXiv, bioRxiv or PubMed ID into a replication brief: metadata, code and data links, availability statements and a rule-based readiness check. Library and CLI.",
   "license": "Apache-2.0",
   "homepage": "https://github.com/huygena/huygena-intake#readme",

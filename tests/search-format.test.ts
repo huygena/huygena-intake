@@ -73,7 +73,7 @@ describe.skipIf(!existsSync(cli))("cli (built)", () => {
     const h = run("--help");
     expect(h.status).toBe(0);
     expect(h.stdout).toContain("Exit codes");
-    expect(run("-v").stdout.trim()).toBe("0.1.0");
+    expect(run("-v").stdout.trim()).toBe("0.7.0");
   });
 
   it("exits 2 on usage errors without touching the network", () => {

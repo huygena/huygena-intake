@@ -29,7 +29,7 @@ describe("intake (recorded responses)", () => {
     expect(unrouted).toEqual([]);
     expect(brief).toMatchObject({
       schema: "huygena.brief/v1",
-      tool: { name: "huygena-intake", version: "0.1.0" },
+      tool: { name: "huygena-intake", version: "0.7.0" },
       input: "https://doi.org/10.1038/s41586-021-03819-2",
       id: { kind: "doi", value: "10.1038/s41586-021-03819-2" },
       paper: { title: "Highly accurate protein structure prediction with AlphaFold", year: 2021, venue: "Nature", pmid: "34265844", pmcid: "PMC8371605" },

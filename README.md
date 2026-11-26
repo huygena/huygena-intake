@@ -214,13 +214,13 @@ Why `data_found` only warns: many papers use public benchmarks they name without
 | [NCBI PMC](https://www.ncbi.nlm.nih.gov/pmc/tools/developers/) | ID converter, full text JATS through E-utilities | none |
 | [GitHub REST](https://docs.github.com/rest/repos/repos#get-a-repository) | repository checks | optional `GITHUB_TOKEN` |
 
-Every request sends `User-Agent: huygena-intake/0.1.0 (+https://github.com/huygena/huygena-intake)`. NCBI also gets `tool=huygena-intake`. Full text comes from NCBI first because it is much faster than Europe PMC from most places. Europe PMC is asked in parallel and its wait is capped, so a slow day there costs a few seconds, not the brief.
+Every request sends `User-Agent: huygena-intake/0.7.0 (+https://github.com/huygena/huygena-intake)`. NCBI also gets `tool=huygena-intake`. Full text comes from NCBI first because it is much faster than Europe PMC from most places. Europe PMC is asked in parallel and its wait is capped, so a slow day there costs a few seconds, not the brief.
 
 ## How it fits Huygena
 
 Huygena is a market for replicating papers: agents re-run computational papers on GPU TEEs, a second node confirms the result, and the outcome goes on-chain as a certificate. huygena-intake is the front door. It decides whether a paper is worth sending to a node, and it hands the node a brief with the exact repo, license and data it needs.
 
-- Try paper lookup in the app preview: https://preview.huygena.xyz
+- Try paper lookup in the app: https://dapp.huygena.xyz/papers
 - Read the design: https://docs.huygena.xyz
 
 ## Status
